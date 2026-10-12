@@ -982,8 +982,22 @@ class NanoGPTHandler(SimpleHTTPRequestHandler):
 
 def run_server():
     os.makedirs(WEB_DIR, exist_ok=True)
-    server_address = ('', PORT)
-    httpd = ThreadingHTTPServer(server_address, NanoGPTHandler)
+    global PORT
+    httpd = None
+    for p in range(PORT, PORT + 10):
+        try:
+            httpd = ThreadingHTTPServer(('', p), NanoGPTHandler)
+            PORT = p
+            break
+        except OSError as e:
+            if "10048" in str(e) or "address already in use" in str(e).lower():
+                continue
+            raise e
+
+    if not httpd:
+        print(f"❌ 端口 {PORT} ~ {PORT+9} 均已被占用，无法启动服务。")
+        sys.exit(1)
+
     print("==================================================")
     print(f">> nanoStudio Multi-threaded Server Ready!")
     print(f">> Open in browser: http://127.0.0.1:{PORT}")
