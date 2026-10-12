@@ -1,0 +1,29 @@
+# OS & Editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Python & Jupyter
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints/
+notebooks/.ipynb_checkpoints/
+
+# Virtual Environments
+env/
+venv/
+.env
+
+# Model Checkpoints & Large Data
+*.pt
+*.bin
+*.pkl
+checkpoints/*
+!checkpoints/**/.gitkeep
+out/
+out-*/
+
+# Runtime temp files
+_web_prompt_temp.txt

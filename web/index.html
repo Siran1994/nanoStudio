@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>nanoStudio - 极简通用多模态深度学习实验工作台</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 顶部导航栏 -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div class="brand-text">
+          <h1>nanoStudio</h1>
+          <span class="subtitle">极简通用多模态深度学习实验台 · LLM / Vision / Diffusion</span>
+        </div>
+      </div>
+
+      <div class="header-badges">
+        <div class="status-indicator" id="status-pill">
+          <span class="dot"></span>
+          <span id="status-text">空闲中 (IDLE)</span>
+        </div>
+        <div class="badge badge-device" id="device-pill">
+          <span>💻 运算平台: 探测中...</span>
+        </div>
+        <div class="badge badge-dataset" id="header-dataset-badge">
+          <span>📚 活动数据集: 🇨🇳 《雨夜谈经》</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 顶级多模态任务中枢 (Task Hub) -->
+    <div class="task-hub-bar">
+      <div class="task-hub-label">🎯 实验任务模式:</div>
+      <div class="task-hub-pills">
+        <button type="button" class="task-pill active" data-task="llm">
+          <span class="pill-icon">📝</span> 语言大模型 (LLM)
+        </button>
+        <button type="button" class="task-pill" data-task="vision">
+          <span class="pill-icon">👁️</span> 图像识别与分类 (Vision)
+        </button>
+        <button type="button" class="task-pill" data-task="diffusion">
+          <span class="pill-icon">🎨</span> 图像生成 (Diffusion) <span class="tag-badge">Demo</span>
+        </button>
+        <button type="button" class="task-pill" data-task="datasets">
+          <span class="pill-icon">🗂️</span> 数据集资产管理 (Datasets)
+        </button>
+      </div>
+    </div>
+
+    <!-- 主体多模态内容区域 -->
+    <main class="main-content">
+      
+      <!-- ================================================================= -->
+      <!-- VIEW 1: 语言大模型 LLM (nanoGPT 原有功能完整保留) -->
+      <!-- ================================================================= -->
+      <div id="llm-task-view" class="task-view active">
+        <!-- 选项卡导航 -->
+        <nav class="nav-tabs">
+          <button class="tab-btn active" data-tab="train-tab">
+            <span class="tab-icon">🎛️</span> 训练监控与 Loss 曲线
+          </button>
+          <button class="tab-btn" data-tab="chat-tab">
+            <span class="tab-icon">💬</span> 模型对话与采样生成
+          </button>
+          <button class="tab-btn" data-tab="arch-tab">
+            <span class="tab-icon">🔍</span> 架构分析与参数量测算
+          </button>
+        </nav>
+
+        <!-- TAB 1: 训练监控与参数调整 -->
+        <section id="train-tab" class="tab-pane active">
+          <div class="grid-layout">
+            <!-- 左侧：超参数面板 -->
+            <div class="panel param-panel">
+              <div class="panel-header">
+                <h2>⚙️ LLM 超参数配置</h2>
+                <span class="preset-label">点击切换预设档位</span>
+              </div>
+
+              <form id="train-form" class="param-form">
+                <!-- 数据集选择卡片 -->
+                <div class="dataset-switcher-card">
+                  <div class="switcher-header">
+                    <span class="switcher-title">📚 文本数据集 (Dataset)</span>
+                    <span class="switcher-badge" id="vocab-info-badge">词表: 1,782 汉字</span>
+                  </div>
+                  <div class="dataset-pill-group" id="llm-dataset-pills">
+                    <!-- 动态从 /api/datasets 渲染，实时响应增删 -->
+                    <div style="font-size: 12px; color: #94a3b8; padding: 6px;">正在加载可用文本数据集...</div>
+                  </div>
+                </div>
+
+                <!-- 快捷预设档位卡片网格 -->
+                <div class="form-section">
+                  <div class="section-title">⚡ 模型规模档位切换 (Presets)</div>
+                  <div class="preset-cards-grid">
+                    <button type="button" class="preset-card active" data-preset="baby">
+                      <span class="preset-name">极速 Baby</span>
+                      <span class="preset-size">0.8 M</span>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="tiny">
+                      <span class="preset-name">当前 Tiny</span>
+                      <span class="preset-size">4.7 M</span>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="mini">
+                      <span class="preset-name">推荐 Mini</span>
+                      <span class="preset-size">10.6 M</span>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="small">
+                      <span class="preset-name">推荐 Small</span>
+                      <span class="preset-size">23.6 M</span>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="medium">
+                      <span class="preset-name">进阶 Medium</span>
+                      <span class="preset-size">45.3 M</span>
+                    </button>
+                    <button type="button" class="preset-card" data-preset="gpt2">
+                      <span class="preset-name">完整 GPT-2</span>
+                      <span class="preset-size">124 M</span>
+                    </button>
+                  </div>
+                </div>
+                <!-- 架构参数 -->
+                <div class="form-section">
+                  <div class="section-title">📐 Transformer 结构尺寸</div>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="n_layer">层数 (n_layer)</label>
+                      <input type="number" id="n_layer" name="n_layer" value="4" min="1" max="24" step="1">
+                      <small>Block 块数</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="n_head">头数 (n_head)</label>
+                      <input type="number" id="n_head" name="n_head" value="4" min="1" max="16" step="1">
+                      <small>注意力多头数</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="n_embd">通道维度 (n_embd)</label>
+                      <input type="number" id="n_embd" name="n_embd" value="128" min="32" max="768" step="32">
+                      <small>需被头数整除</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="block_size">上下文长度 (block_size)</label>
+                      <input type="number" id="block_size" name="block_size" value="64" min="16" max="512" step="16">
+                      <small>回看字符数</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 训练策略 -->
+                <div class="form-section">
+                  <div class="section-title">🚀 训练与优化超参</div>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="batch_size">批次 (batch_size)</label>
+                      <input type="number" id="batch_size" name="batch_size" value="12" min="1" max="128" step="1">
+                      <small>单批样本量</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="max_iters">最大步数 (max_iters)</label>
+                      <input type="number" id="max_iters" name="max_iters" value="1000" min="50" max="10000" step="50">
+                      <small>迭代轮次</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="learning_rate">学习率 (lr)</label>
+                      <input type="number" id="learning_rate" name="learning_rate" value="0.001" min="0.00001" max="0.01" step="0.0001">
+                      <small>AdamW 步长</small>
+                    </div>
+                    <div class="form-group">
+                      <label for="dropout">丢弃率 (dropout)</label>
+                      <input type="number" id="dropout" name="dropout" value="0.0" min="0" max="0.5" step="0.05">
+                      <small>防过拟合</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 评测与日志间隔 -->
+                <div class="form-section">
+                  <div class="section-title">⏱️ 评估与输出设置</div>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="eval_interval">验证间隔 (eval_interval)</label>
+                      <input type="number" id="eval_interval" name="eval_interval" value="100" min="10" max="1000" step="10">
+                    </div>
+                    <div class="form-group">
+                      <label for="log_interval">日志间隔 (log_interval)</label>
+                      <input type="number" id="log_interval" name="log_interval" value="20" min="1" max="100" step="5">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 硬件设备与运行环境 -->
+                <div class="form-section">
+                  <div class="section-title">💻 运算设备与硬件加速</div>
+                  <div class="form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                      <label for="llm_device">训练运算设备 (Compute Device)</label>
+                      <select id="llm_device" name="llm_device">
+                        <option value="auto" selected>自动探测 (优先 GPU/CUDA，自动回退 CPU)</option>
+                        <option value="cuda">NVIDIA GPU / CUDA 显卡加速</option>
+                        <option value="cpu">强制 CPU 模式 (Intel/AMD 多线程优化)</option>
+                      </select>
+                      <span id="device-hint-text" style="font-size: 11px; color: #94a3b8; margin-top: 4px; display: block;"></span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 参数估算即时卡片 -->
+                <div class="calc-preview-card">
+                  <div class="calc-item">
+                    <span class="calc-label">当前模型参数量:</span>
+                    <span class="calc-val" id="model-param-count">0.80 M</span>
+                  </div>
+                  <div class="calc-item">
+                    <span class="calc-label">预估显存/内存:</span>
+                    <span class="calc-val" id="model-mem-est">~9.6 MB</span>
+                  </div>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="btn-group">
+                  <button type="button" id="start-btn" class="btn btn-primary">
+                    <span class="btn-icon">▶</span> 开始训练 (Start)
+                  </button>
+                  <button type="button" id="stop-btn" class="btn btn-danger" disabled>
+                    <span class="btn-icon">■</span> 停止训练 (Stop)
+                  </button>
+                  <button type="button" id="reset-btn" class="btn btn-secondary">
+                    <span class="btn-icon">↺</span> 重置默认
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 右侧：指标监控、Loss 图表与日志 -->
+            <div class="panel monitor-panel">
+              <div class="kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-title">训练进度</div>
+                  <div class="kpi-value" id="kpi-iter">0 / 1000</div>
+                  <div class="kpi-sub">
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" id="progress-bar"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">当前 Train Loss</div>
+                  <div class="kpi-value text-emerald" id="kpi-train-loss">-</div>
+                  <div class="kpi-sub" id="kpi-train-loss-hint">初始基准: ~7.48</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">最新 Val Loss</div>
+                  <div class="kpi-value text-amber" id="kpi-val-loss">-</div>
+                  <div class="kpi-sub">泛化验证损失</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">迭代耗时</div>
+                  <div class="kpi-value" id="kpi-speed">- ms</div>
+                  <div class="kpi-sub" id="kpi-time-elapsed">已耗时: 0s</div>
+                </div>
+              </div>
+
+              <!-- 动态 Loss 曲线 -->
+              <div class="chart-container">
+                <div class="chart-header">
+                  <div class="chart-title">
+                    <span>📈 实时 Loss 收敛曲线 (Train vs Val)</span>
+                  </div>
+                  <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color train-color"></span> 训练集 Loss (Train)</span>
+                    <span class="legend-item"><span class="legend-color val-color"></span> 验证集 Loss (Val)</span>
+                  </div>
+                </div>
+                <div class="canvas-wrapper">
+                  <canvas id="loss-canvas"></canvas>
+                  <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+                </div>
+              </div>
+
+              <!-- 实时日志终端 -->
+              <div class="terminal-container">
+                <div class="terminal-header">
+                  <div class="terminal-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                    <span class="terminal-title">终端输出日志 (stdout)</span>
+                  </div>
+                  <div class="terminal-actions">
+                    <label class="toggle-scroll">
+                      <input type="checkbox" id="auto-scroll-check" checked>
+                      <span>自动滚屏</span>
+                    </label>
+                    <button type="button" class="term-btn" id="clear-log-btn">清空</button>
+                    <button type="button" class="term-btn" id="copy-log-btn">复制日志</button>
+                  </div>
+                </div>
+                <div class="terminal-body" id="log-console">
+                  <div class="log-line log-system">[系统初始化] nanoGPT 交互式工作台已就绪，等待训练任务...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: 模型对话与文本采样 -->
+        <section id="chat-tab" class="tab-pane">
+          <div class="chat-layout">
+            <div class="panel chat-config-panel">
+              <div class="panel-header">
+                <h2>🎚️ 采样参数微调</h2>
+              </div>
+              <div class="form-group">
+                <div class="slider-header">
+                  <label for="temperature">采样温度 (Temperature): <span id="temp-val">0.8</span></label>
+                </div>
+                <input type="range" id="temperature" min="0.1" max="1.5" step="0.05" value="0.8">
+                <small>低温严谨，高温更具创造力</small>
+              </div>
+              <div class="form-group">
+                <div class="slider-header">
+                  <label for="top_k">Top-K 截断: <span id="topk-val">200</span></label>
+                </div>
+                <input type="range" id="top_k" min="1" max="200" step="1" value="200">
+                <small>仅保留概率最大的前 K 个词</small>
+              </div>
+              <div class="form-group">
+                <div class="slider-header">
+                  <label for="max_new_tokens">生成字符上限: <span id="tokens-val">250</span></label>
+                </div>
+                <input type="range" id="max_new_tokens" min="50" max="600" step="50" value="250">
+              </div>
+
+              <!-- 快捷预设引导词 -->
+              <div class="prompt-presets">
+                <div class="section-title" id="prompt-presets-title">📜 《雨夜谈经》中文引导词</div>
+                <div id="chinese-prompt-presets">
+                  <button type="button" class="preset-prompt-btn" data-prompt="道生一，一生二，二生三，三生万物。">
+                    ☯️ 道德经义 (道生一...)
+                  </button>
+                  <button type="button" class="preset-prompt-btn" data-prompt="雨夜之中，静坐观心，所见为何？">
+                    🌧️ 雨夜问心 (静坐观心)
+                  </button>
+                  <button type="button" class="preset-prompt-btn" data-prompt="天地不仁，以万物为刍狗；">
+                    📜 经文参悟 (天地不仁)
+                  </button>
+                  <button type="button" class="preset-prompt-btn" data-prompt="&#10;">
+                    🎲 自由续写 (Random Start)
+                  </button>
+                </div>
+                <div id="english-prompt-presets" style="display: none;">
+                  <button type="button" class="preset-prompt-btn" data-prompt="ROMEO:&#10;O, she doth teach the torches to burn bright!">
+                    🌹 罗密欧台词 (ROMEO)
+                  </button>
+                  <button type="button" class="preset-prompt-btn" data-prompt="HAMLET:&#10;To be, or not to be, that is the question:">
+                    💀 哈姆雷特独白 (HAMLET)
+                  </button>
+                  <button type="button" class="preset-prompt-btn" data-prompt="&#10;">
+                    🎲 自由生成 (Random Start)
+                  </button>
+                </div>
+              </div>
+
+              <div class="ckpt-status-card" id="chat-ckpt-card">
+                <div class="ckpt-title">当前权重状态:</div>
+                <div class="ckpt-info" id="chat-ckpt-info">正在检测...</div>
+              </div>
+            </div>
+
+            <div class="panel chat-display-panel">
+              <div class="chat-header">
+                <h2>✨ 自回归生成体验台</h2>
+                <span class="chat-hint" id="chat-hint-text">输入引导词（Prompt），体验小型 Transformer 逐字符预测续写</span>
+              </div>
+              <div class="chat-output-area" id="chat-history">
+                <div class="message-card system-msg">
+                  <div class="msg-avatar">🤖</div>
+                  <div class="msg-content">
+                    <div class="msg-author">nanoGPT 助理</div>
+                    <div class="msg-text" id="assistant-welcome-text">
+                      你好！我是基于当前所选数据集训练的字符级 Transformer 语言模型。输入提示词后点击“立即生成”，我将自回归接话！
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="chat-input-area">
+                <textarea id="prompt-input" placeholder="输入提示词（例如：道生一，或 雨夜之中，或留空换行）..." rows="3"></textarea>
+                <div class="input-actions">
+                  <span class="shortcut-tip">提示：按 <kbd>Ctrl</kbd> + <kbd>Enter</kbd> 快捷发送</span>
+                  <button type="button" id="generate-btn" class="btn btn-primary">
+                    <span class="btn-icon">⚡</span> 立即生成 (Generate)
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 3: 架构分析与参数量测算 -->
+        <section id="arch-tab" class="tab-pane">
+          <div class="arch-layout">
+            <div class="panel arch-panel">
+              <div class="panel-header">
+                <h2>🔬 Transformer 理论结构拆解</h2>
+                <span class="panel-subtitle">GPT-2 (Decoder-Only) 架构各层参数量理论公式分析</span>
+              </div>
+              <div class="arch-cards-grid">
+                <div class="arch-card">
+                  <div class="arch-badge">输入嵌入</div>
+                  <h3>Embedding 编码层</h3>
+                  <p>包含 Token 嵌入与绝对位置嵌入。</p>
+                  <div class="math-box"><code>Param = (vocab_size × n_embd) + (block_size × n_embd)</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">自注意力</div>
+                  <h3>Causal Self-Attention</h3>
+                  <p>包含 Q, K, V 投影矩阵与输出投影。</p>
+                  <div class="math-box"><code>Param = 4 × n_embd² + Biases</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">前馈网络</div>
+                  <h3>GELU Feed-Forward (MLP)</h3>
+                  <p>4 倍隐藏层放大与收缩。</p>
+                  <div class="math-box"><code>Param = 8 × n_embd²</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">权重绑定</div>
+                  <h3>Weight Tying</h3>
+                  <p>lm_head 输出投影与 wte 共享权重。</p>
+                  <div class="math-box"><code>lm_head.weight ≡ wte.weight</code></div>
+                </div>
+              </div>
+
+              <div class="checkpoint-manage-section">
+                <h3>📦 检查点 (Checkpoint) 详情与磁盘状态</h3>
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>任务目录</th>
+                        <th>模型形态</th>
+                        <th>文件大小</th>
+                        <th>最后更新时间</th>
+                        <th>权重状态</th>
+                      </tr>
+                    </thead>
+                    <tbody id="checkpoint-table-body">
+                      <tr><td colspan="5" class="text-center">正在加载检查点信息...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+
+      <!-- ================================================================= -->
+      <!-- VIEW 2: 图像识别与计算机视觉 Vision (全新模块) -->
+      <!-- ================================================================= -->
+      <div id="vision-task-view" class="task-view">
+        <nav class="nav-tabs vision-tabs">
+          <button class="tab-btn active" data-tab="vision-train-tab">
+            <span class="tab-icon">🎛️</span> 视觉训练与收敛监控
+          </button>
+          <button class="tab-btn" data-tab="vision-play-tab">
+            <span class="tab-icon">🔍</span> 图像识别实战测试台 (Playground)
+          </button>
+          <button class="tab-btn" data-tab="vision-arch-tab">
+            <span class="tab-icon">🔬</span> 卷积神经网络 (CNN) 架构剖析
+          </button>
+        </nav>
+
+        <!-- Vision Tab 1: 视觉训练与监控 -->
+        <section id="vision-train-tab" class="tab-pane active">
+          <div class="grid-layout">
+            <!-- 视觉超参数面板 -->
+            <div class="panel param-panel">
+              <div class="panel-header">
+                <h2>⚙️ 计算机视觉训练配置</h2>
+                <span class="preset-label">支持 CPU / CUDA 自动加速</span>
+              </div>
+
+              <form id="vision-train-form" class="param-form">
+                <div class="form-section">
+                  <div class="section-title">🧱 骨干网络选择 (Backbone Model)</div>
+                  <div class="backbone-select-group">
+                    <label class="model-radio-card active">
+                      <input type="radio" name="vision_model" value="simple_cnn" checked>
+                      <div class="radio-content">
+                        <span class="model-title">极简 CNN (SimpleCNN)</span>
+                        <span class="model-desc">3层卷积+池化，~0.6M 参数，CPU 秒级极速收敛</span>
+                      </div>
+                    </label>
+                    <label class="model-radio-card">
+                      <input type="radio" name="vision_model" value="resnet18">
+                      <div class="radio-content">
+                        <span class="model-title">经典 ResNet-18</span>
+                        <span class="model-desc">残差跳跃连接结构，~11.2M 参数，工业级图像特征提取</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-title">🖼️ 视觉数据集</div>
+                  <div class="form-group">
+                    <select id="vision_dataset" name="vision_dataset">
+                      <option value="cifar10" selected>CIFAR-10 彩色图像 (10类: 飞机/汽车/猫/狗等)</option>
+                    </select>
+                    <small>支持在【数据集资产管理】中自由增删</small>
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <div class="section-title">🚀 训练超参数</div>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="vision_batch_size">批次大小 (Batch Size)</label>
+                      <input type="number" id="vision_batch_size" value="32" min="8" max="128" step="8">
+                    </div>
+                    <div class="form-group">
+                      <label for="vision_epochs">训练轮次 (Epochs)</label>
+                      <input type="number" id="vision_epochs" value="5" min="1" max="50" step="1">
+                    </div>
+                    <div class="form-group">
+                      <label for="vision_lr">学习率 (Learning Rate)</label>
+                      <input type="number" id="vision_lr" value="0.001" min="0.0001" max="0.01" step="0.0005">
+                    </div>
+                    <div class="form-group">
+                      <label for="vision_device">运算设备</label>
+                      <select id="vision_device">
+                        <option value="auto" selected>自动探测 (CUDA 优先)</option>
+                        <option value="cpu">强制 CPU</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="btn-group">
+                  <button type="button" id="vision-start-btn" class="btn btn-primary">
+                    <span class="btn-icon">▶</span> 开始视觉训练 (Start)
+                  </button>
+                  <button type="button" id="vision-stop-btn" class="btn btn-danger" disabled>
+                    <span class="btn-icon">■</span> 停止训练 (Stop)
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- 视觉监控面板 -->
+            <div class="panel monitor-panel">
+              <div class="kpi-grid">
+                <div class="kpi-card">
+                  <div class="kpi-title">训练进度</div>
+                  <div class="kpi-value" id="vision-kpi-progress">0 / 5 轮</div>
+                  <div class="kpi-sub">
+                    <div class="progress-bar-bg">
+                      <div class="progress-bar-fill" id="vision-progress-bar"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">当前 Train Loss</div>
+                  <div class="kpi-value text-emerald" id="vision-kpi-train-loss">-</div>
+                  <div class="kpi-sub">交叉熵损失</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">最新 Val Loss</div>
+                  <div class="kpi-value text-amber" id="vision-kpi-val-loss">-</div>
+                  <div class="kpi-sub">验证损失</div>
+                </div>
+                <div class="kpi-card">
+                  <div class="kpi-title">🏆 验证集准确率 (Accuracy)</div>
+                  <div class="kpi-value text-cyan" id="vision-kpi-acc">- %</div>
+                  <div class="kpi-sub" id="vision-kpi-acc-hint">Top-1 分类正确率</div>
+                </div>
+              </div>
+
+              <!-- 视觉 Loss & 准确率双指标图表 -->
+              <div class="chart-container">
+                <div class="chart-header">
+                  <div class="chart-title">
+                    <span>📈 视觉训练双指标监控 (Loss 与 Top-1 准确率曲线)</span>
+                  </div>
+                  <div class="chart-legend">
+                    <span class="legend-item"><span class="legend-color train-color"></span> 训练 Loss</span>
+                    <span class="legend-item"><span class="legend-color val-color"></span> 验证 Loss</span>
+                    <span class="legend-item"><span class="legend-color acc-color"></span> 准确率 Accuracy %</span>
+                  </div>
+                </div>
+                <div class="canvas-wrapper">
+                  <canvas id="vision-chart-canvas"></canvas>
+                </div>
+              </div>
+
+              <!-- 视觉终端日志 -->
+              <div class="terminal-container">
+                <div class="terminal-header">
+                  <div class="terminal-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                    <span class="terminal-title">视觉训练终端 (stdout)</span>
+                  </div>
+                  <div class="terminal-actions">
+                    <button type="button" class="term-btn" id="vision-clear-log-btn">清空</button>
+                  </div>
+                </div>
+                <div class="terminal-body" id="vision-log-console">
+                  <div class="log-line log-system">[系统就绪] 计算机视觉引擎已装载，可随时启动训练...</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vision Tab 2: 图像识别实战测试台 (Playground) -->
+        <section id="vision-play-tab" class="tab-pane">
+          <div class="playground-layout">
+            <!-- 左侧：图像上传与测试样张区 -->
+            <div class="panel play-input-panel">
+              <div class="panel-header">
+                <h2>🖼️ 测试图片输入</h2>
+                <span class="panel-subtitle">支持本地图片拖拽上传或一键点击预置测试样张</span>
+              </div>
+
+              <!-- 拖拽上传框 -->
+              <div class="drop-zone" id="vision-drop-zone">
+                <div class="drop-content">
+                  <div class="drop-icon">📤</div>
+                  <div class="drop-text">拖拽图片到此处，或 <span class="highlight-link">点击浏览本地文件</span></div>
+                  <div class="drop-hint">支持 JPG / PNG / WEBP 格式，系统将自动缩放适配</div>
+                </div>
+                <input type="file" id="vision-file-input" accept="image/*" style="display: none;">
+              </div>
+
+              <!-- 当前待测图像预览窗口 -->
+              <div class="preview-box-container">
+                <div class="preview-header">
+                  <span>当前送入模型图像 (32x32 分辨率):</span>
+                  <span id="preview-status" class="preview-status-tag">等待选择</span>
+                </div>
+                <div class="preview-canvas-wrapper">
+                  <canvas id="vision-preview-canvas" width="128" height="128"></canvas>
+                </div>
+              </div>
+
+              <!-- 预置快速测试样张卡片 -->
+              <div class="sample-gallery-section">
+                <div class="section-title">🎨 一键点击测试样本 (CIFAR-10 代表性样张)</div>
+                <div class="sample-btns-grid">
+                  <button type="button" class="sample-btn" data-class="0">✈️ 飞机 (Airplane)</button>
+                  <button type="button" class="sample-btn" data-class="1">🚗 汽车 (Auto)</button>
+                  <button type="button" class="sample-btn" data-class="2">🐦 鸟 (Bird)</button>
+                  <button type="button" class="sample-btn" data-class="3">🐱 猫 (Cat)</button>
+                  <button type="button" class="sample-btn" data-class="4">🦌 鹿 (Deer)</button>
+                  <button type="button" class="sample-btn" data-class="5">🐶 狗 (Dog)</button>
+                  <button type="button" class="sample-btn" data-class="6">🐸 青蛙 (Frog)</button>
+                  <button type="button" class="sample-btn" data-class="7">🐴 马 (Horse)</button>
+                  <button type="button" class="sample-btn" data-class="8">🚢 船 (Ship)</button>
+                  <button type="button" class="sample-btn" data-class="9">🚚 卡车 (Truck)</button>
+                </div>
+              </div>
+
+              <div class="action-row">
+                <button type="button" id="vision-predict-btn" class="btn btn-primary btn-block">
+                  <span class="btn-icon">⚡</span> 立即前向推理预测 (Predict)
+                </button>
+              </div>
+            </div>
+
+            <!-- 右侧：预测结果与 Top-5 概率柱状条 -->
+            <div class="panel play-result-panel">
+              <div class="panel-header">
+                <h2>🎯 模型分类推理预测结果</h2>
+                <span class="panel-subtitle" id="vision-infer-meta">耗时: - ms | 权重: checkpoints/vision/ckpt.pt</span>
+              </div>
+
+              <!-- 最佳预测大卡片 -->
+              <div class="top-prediction-card" id="vision-top-card">
+                <div class="top-pred-icon" id="top-pred-icon">❓</div>
+                <div class="top-pred-info">
+                  <div class="top-pred-label">最高置信度类别 (Top-1)</div>
+                  <div class="top-pred-class" id="top-pred-class">等待输入图片</div>
+                  <div class="top-pred-prob" id="top-pred-prob">置信度: - %</div>
+                </div>
+              </div>
+
+              <!-- Top-5 概率分布条形图 -->
+              <div class="prob-distribution-card">
+                <div class="prob-header">
+                  <span>📊 前 5 个可能类别的概率分布 (Top-5 Probabilities)</span>
+                </div>
+                <div class="prob-bars-list" id="vision-prob-bars">
+                  <div class="prob-placeholder">点击左侧样张或上传本地图片后，此处将实时展示各类别概率条...</div>
+                </div>
+              </div>
+
+              <!-- 视觉测试小贴士 -->
+              <div class="vision-tip-box">
+                <div class="tip-title">💡 视觉推理原理:</div>
+                <p>图像进入网络后，经过卷积与池化层逐层提取边缘、纹理与高级语义特征，最终在全连接层输出各类别的未归一化对数概率（Logits），通过 Softmax 函数变换为和为 100% 的概率分布。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Vision Tab 3: 网络架构剖析 -->
+        <section id="vision-arch-tab" class="tab-pane">
+          <div class="arch-layout">
+            <div class="panel arch-panel">
+              <div class="panel-header">
+                <h2>🔬 卷积神经网络 (CNN / ResNet) 核心原理拆解</h2>
+                <span class="panel-subtitle">从图像局部感知到深层特征抽象的数学机制</span>
+              </div>
+              <div class="arch-cards-grid">
+                <div class="arch-card">
+                  <div class="arch-badge">特征提取</div>
+                  <h3>2D 卷积层 (Conv2d)</h3>
+                  <p>通过可学习的卷积核在图像上滑动做点积，捕捉边缘、角点等空间局部模式，具有平移不变性。</p>
+                  <div class="math-box"><code>Output(i,j) = Σ Σ Input(i+m, j+n) × Kernel(m,n)</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">空间下采样</div>
+                  <h3>最大池化 (MaxPool2d)</h3>
+                  <p>将分辨率缩小一半（如 32x32 -> 16x16），减少计算量并增强模型对微小形变的鲁棒性。</p>
+                  <div class="math-box"><code>Output = max(Window(2×2))</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">梯度高速公路</div>
+                  <h3>残差跳跃连接 (Residual Shortcut)</h3>
+                  <p>ResNet 核心发明：让网络学习恒等映射加残差 F(x) + x，从根本上解决深度增加时的梯度消失与退化问题。</p>
+                  <div class="math-box"><code>y = F(x, {Wi}) + x</code></div>
+                </div>
+                <div class="arch-card">
+                  <div class="arch-badge">概率归一化</div>
+                  <h3>Softmax 分类器</h3>
+                  <p>将高维特征线性映射为对应每个类别的得分，并归一化为互斥事件概率。</p>
+                  <div class="math-box"><code>P(y=k|x) = e^(z_k) / Σ e^(z_j)</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+
+      <!-- ================================================================= -->
+      <!-- VIEW 3: 数据集资产管理中心 Datasets Manager (自由增删查) -->
+      <!-- ================================================================= -->
+      <div id="datasets-task-view" class="task-view">
+        <div class="panel datasets-manager-panel">
+          <div class="panel-header">
+            <div class="header-left">
+              <h2>🗂️ 全模态数据集资产管理中枢</h2>
+              <span class="panel-subtitle">自由查看、管理与清理文本语言集与计算机视觉数据集</span>
+            </div>
+            <div class="header-actions">
+              <button type="button" class="btn btn-primary" id="open-create-dataset-btn">
+                <span>➕ 新增文本数据集</span>
+              </button>
+              <button type="button" class="btn btn-secondary" id="refresh-datasets-btn">
+                <span>🔄 刷新资产列表</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 新增文本数据集展开面板 (默认隐藏) -->
+          <div class="create-dataset-panel" id="create-dataset-panel" style="display: none; margin-bottom: 24px; padding: 22px; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 12px; backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="margin: 0; font-size: 16px; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                <span>✨ 导入 / 新建自定义文本数据集 (自动提取词表与二进制流)</span>
+              </h3>
+              <button type="button" class="term-btn" id="close-create-dataset-btn">✕ 关闭</button>
+            </div>
+            
+            <form id="create-dataset-form" style="display: flex; flex-direction: column; gap: 14px;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="new_ds_id" style="font-size: 13px; color: #94a3b8; display: block; margin-bottom: 6px;">数据集英文标识 (ID / 英文小写或拼音)</label>
+                  <input type="text" id="new_ds_id" placeholder="例如: my_corpus 或 hongloumeng" required style="width: 100%; padding: 10px 12px; border-radius: 6px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 14px;">
+                </div>
+                <div class="form-group">
+                  <label for="new_ds_name" style="font-size: 13px; color: #94a3b8; display: block; margin-bottom: 6px;">显示名称 (中文或英文)</label>
+                  <input type="text" id="new_ds_name" placeholder="例如: 🇨🇳 《红楼梦》白话文集" required style="width: 100%; padding: 10px 12px; border-radius: 6px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-size: 14px;">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label for="new_ds_content" style="font-size: 13px; color: #94a3b8;">文本内容 (支持直接粘贴或导入本地文件)</label>
+                  <label for="new_ds_file" style="color: #38bdf8; font-size: 13px; cursor: pointer; text-decoration: underline;">📁 选择本地 .txt 文件自动填入</label>
+                  <input type="file" id="new_ds_file" accept=".txt" style="display: none;">
+                </div>
+                <textarea id="new_ds_content" rows="6" placeholder="在此粘贴您的文本材料（支持各类小说、古籍、名著、诗词散文等），系统将自动进行字符提取、词表编码映射并生成 train.bin 与 val.bin 二进制流..." required style="width: 100%; padding: 12px; border-radius: 6px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; font-family: 'Fira Code', monospace; font-size: 13px; resize: vertical; line-height: 1.5;"></textarea>
+                <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                  <span id="new_ds_stats" style="color: #64748b; font-size: 12px;">字数统计: 0 字</span>
+                  <span style="color: #64748b; font-size: 12px;">注: 将按 9:1 自动划分训练集与验证集</span>
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px;">
+                <button type="submit" id="submit-create-ds-btn" class="btn btn-primary" style="padding: 10px 24px;">
+                  <span>⚡ 立即打包并生成数据集</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- 数据集卡片网格 -->
+          <div class="datasets-grid" id="datasets-grid-container">
+            <div class="loading-datasets-msg">正在加载本地数据集资产列表...</div>
+          </div>
+
+          <!-- 自定义数据集指引说明 -->
+          <div class="dataset-guide-card">
+            <h3>📖 如何添加您自己的私有数据集？</h3>
+            <div class="guide-columns">
+              <div class="guide-col">
+                <h4>🖼️ 视觉数据集 (Vision)</h4>
+                <p>在 <code>data/vision/&lt;您的数据集名&gt;/</code> 目录下按类别创建子文件夹放置图片：</p>
+                <pre><code>data/vision/my_pets/
+├── cat/ (放入猫的图片)
+├── dog/ (放入狗的图片)
+└── bird/ (放入鸟的图片)</code></pre>
+                <small>系统将自动按文件夹名字作为类别标签进行训练！</small>
+              </div>
+              <div class="guide-col">
+                <h4>📝 文本数据集 (LLM)</h4>
+                <p>在 <code>data/&lt;数据集名&gt;/</code> 目录下放置原始 <code>input.txt</code> 或书籍 PDF，运行预处理即可完成一键字符分词打包。</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ================================================================= -->
+      <!-- VIEW 4: 生成式与扩散模型 Diffusion (预留与演示模块) -->
+      <!-- ================================================================= -->
+      <div id="diffusion-task-view" class="task-view">
+        <div class="panel diffusion-panel">
+          <div class="panel-header">
+            <h2>🎨 生成式扩散模型 (Denoising Diffusion Probabilistic Models)</h2>
+            <span class="panel-subtitle">从纯高斯白噪声中逐步去噪还原高清图像的生成范式</span>
+          </div>
+
+          <div class="diffusion-demo-card">
+            <div class="diff-step-display">
+              <div class="step-card">
+                <div class="step-badge">第 1000 步 (起点)</div>
+                <div class="diff-canvas-box" id="diff-step-pure-noise"></div>
+                <span>纯随机高斯噪声</span>
+              </div>
+              <div class="step-arrow">➔</div>
+              <div class="step-card">
+                <div class="step-badge">第 500 步 (去噪中)</div>
+                <div class="diff-canvas-box" id="diff-step-mid-noise"></div>
+                <span>初现轮廓与色块</span>
+              </div>
+              <div class="step-arrow">➔</div>
+              <div class="step-card">
+                <div class="step-badge">第 0 步 (收敛终点)</div>
+                <div class="diff-canvas-box" id="diff-step-clean-img"></div>
+                <span>生成清晰目标图像</span>
+              </div>
+            </div>
+
+            <div class="diffusion-info-box">
+              <h3>⚡ 架构预留与后续支持路线</h3>
+              <p>当前多模态控制台已做好对生成式扩散模型（DDPM / Latent Diffusion）的接口预留！当您配置好 GPU 显卡环境后，可直接在后台挂载轻量 UNet 降噪网络，在控制台实时体验输入文字生成图片的过程。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- 底部状态脚标 -->
+    <footer class="app-footer">
+      <span>基于 <a href="https://github.com/karpathy/nanoGPT" target="_blank" rel="noopener">nanoGPT</a> 与通用 PyTorch 体系构建</span>
+      <span class="footer-sep">·</span>
+      <span>极简、高效、纯粹的通用深度学习实验控制台</span>
+    </footer>
+  </div>
+
+  <!-- 硬件状态与 GPU 启用说明弹窗 -->
+  <div id="hardware-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content" style="max-width: 580px; width: 90%; background: #0f172a; border: 1px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 17px; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+          <span>💻 本地硬件探测与 GPU 加速指引</span>
+        </h3>
+        <button type="button" class="term-btn" id="close-hw-modal-btn">✕ 关闭</button>
+      </div>
+      <div id="hw-modal-body" style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
+        <!-- 动态填充 -->
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
