@@ -587,6 +587,12 @@ class NanoGPTHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
+    def translate_path(self, path):
+        parsed = urlparse(path).path
+        if parsed.startswith("/web/"):
+            path = parsed[4:]
+        return super().translate_path(path)
+
     def do_OPTIONS(self):
         self.send_response(200)
         self.send_cors_headers()

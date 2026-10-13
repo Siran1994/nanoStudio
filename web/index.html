@@ -30,7 +30,7 @@
           <span>💻 运算平台: 探测中...</span>
         </div>
         <div class="badge badge-dataset" id="header-dataset-badge">
-          <span>📚 活动数据集: 🇨🇳 《雨夜谈经》</span>
+          <span>📚 活动数据集: 🇬🇧 Shakespeare 英文戏剧</span>
         </div>
       </div>
     </header>
@@ -89,11 +89,15 @@
                 <div class="dataset-switcher-card">
                   <div class="switcher-header">
                     <span class="switcher-title">📚 文本数据集 (Dataset)</span>
-                    <span class="switcher-badge" id="vocab-info-badge">词表: 1,782 汉字</span>
+                    <span class="switcher-badge" id="vocab-info-badge">词表: 65 字符</span>
                   </div>
                   <div class="dataset-pill-group" id="llm-dataset-pills">
                     <!-- 动态从 /api/datasets 渲染，实时响应增删 -->
-                    <div style="font-size: 12px; color: #94a3b8; padding: 6px;">正在加载可用文本数据集...</div>
+                    <button type="button" class="dataset-pill dataset-pill-btn active" data-dataset="shakespeare_char" data-name="🇬🇧 Shakespeare 英文戏剧" data-vocab="65" data-out="checkpoints/llm_shakespeare_char">
+                      <span class="pill-badge" style="font-size: 10px; font-weight: 700; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 2px 5px; border-radius: 4px; margin-right: 6px;">EN</span>
+                      <span class="pill-title">🇬🇧 Shakespeare 英文戏剧</span>
+                      <span class="pill-sub" style="font-size: 11px; color: #94a3b8; margin-left: 4px;">(65字)</span>
+                    </button>
                   </div>
                 </div>
 
@@ -909,6 +913,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.1"></script>
 </body>
 </html>

@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // 1.5 Dynamic Dataset State & Switcher
   // ==========================================
+  // Application State
+  let isTrainingActive = false;
+  let isVisionTrainingActive = false;
   let currentDataset = 'shakespeare_char';
   let currentDatasetName = 'Shakespeare 英文 (65字符)';
   let currentOutDir = 'checkpoints/llm_shakespeare_char';
@@ -180,6 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const DEFAULT_FALLBACK_DATASETS = [
+    { id: 'shakespeare_char', name: '🇬🇧 Shakespeare 英文戏剧', type: 'text', lang: 'en', vocab_size: 65, size_mb: 1.91 },
+    { id: 'cifar10', name: 'CIFAR-10 彩色图像 (10类)', type: 'vision', lang: 'en', classes: 10, size_mb: 28.14 }
+  ];
+
   // ==========================================
   // 2. Presets & Parameter Calculation (6 Tiers)
   // ==========================================
@@ -278,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('model-param-count').textContent = `${mCount} M`;
     document.getElementById('model-mem-est').textContent = `~${memMb} MB`;
   }
-  let isTrainingActive = false;
+
 
   ['n_layer', 'n_head', 'n_embd', 'block_size'].forEach(id => {
     const el = document.getElementById(id);
@@ -779,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const deleteBtn = exists
           ? `<button type="button" class="term-btn delete-ckpt-btn" data-id="${item.id}" style="color: #f87171; border-color: rgba(248, 113, 113, 0.3); padding: 3px 8px; font-size: 11px;">🗑️ 清理权重</button>`
-          : '';
+          : `<button type="button" class="term-btn delete-ckpt-btn" data-id="${item.id}" style="color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); padding: 3px 8px; font-size: 11px;">🗑️ 移除条目</button>`;
 
         const dataOriginHint = item.has_dataset
           ? `<span style="display: block; font-size: 11px; color: #64748b; margin-top: 2px;">🔗 关联数据源: ${escapeHtml(item.linked_ds)}</span>`
@@ -1011,7 +1019,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const visionCanvas = document.getElementById('vision-chart-canvas');
   const visionCtx = visionCanvas.getContext('2d');
   let visionLossHistory = [];
-  let isVisionTrainingActive = false;
   let lastVisionLogCount = 0;
   const visionLogConsole = document.getElementById('vision-log-console');
 
@@ -1569,75 +1576,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchDatasets() {
     const container = document.getElementById('datasets-grid-container');
-    if (!container) return [];
-    container.innerHTML = '<div class="loading-datasets-msg">正在刷新本地数据集资产...</div>';
+    if (container) {
+      container.innerHTML = '<div class="loading-datasets-msg">正在刷新本地数据集资产...</div>';
+    }
 
     try {
       const res = await fetch(`${API_BASE}/api/datasets`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const items = await res.json();
-      container.innerHTML = '';
+      if (container) container.innerHTML = '';
 
       // Sync selector UI across LLM & Vision
       syncDatasetSelectors(items);
 
-      if (items.length === 0) {
-        container.innerHTML = '<div style="color: #94a3b8; padding: 20px;">暂无数据集</div>';
-        return items;
-      }
+      if (container) {
+        if (items.length === 0) {
+          container.innerHTML = '<div style="color: #94a3b8; padding: 20px;">暂无数据集</div>';
+          return items;
+        }
 
-      items.forEach(ds => {
-        const card = document.createElement('div');
-        card.className = 'dataset-card';
-        const isVision = ds.type === 'vision';
-        const badgeClass = isVision ? 'ds-badge-vision' : 'ds-badge-text';
-        const badgeText = isVision ? '🖼️ 视觉图像' : '📝 文本语言';
-        const detailText = isVision ? `类别数: ${ds.classes} 类` : `词表: ${ds.vocab_size ? ds.vocab_size.toLocaleString() : '—'} 字符`;
+        items.forEach(ds => {
+          const card = document.createElement('div');
+          card.className = 'dataset-card';
+          const isVision = ds.type === 'vision';
+          const badgeClass = isVision ? 'ds-badge-vision' : 'ds-badge-text';
+          const badgeText = isVision ? '🖼️ 视觉图像' : '📝 文本语言';
+          const detailText = isVision ? `类别数: ${ds.classes} 类` : `词表: ${ds.vocab_size ? ds.vocab_size.toLocaleString() : '—'} 字符`;
 
-        card.innerHTML = `
-          <div class="ds-card-header">
-            <span class="ds-name">${escapeHtml(ds.name)}</span>
-            <span class="ds-badge ${badgeClass}">${badgeText}</span>
-          </div>
-          <div class="ds-meta-row">
-            <span>${detailText}</span>
-            <span>大小: ${ds.size_mb} MB</span>
-          </div>
-          <div style="font-size: 11px; color: #64748b; word-break: break-all;">
-            路径: <code>${escapeHtml(ds.id)}</code>
-          </div>
-          <div style="margin-top: auto; display: flex; justify-content: flex-end;">
-            <button type="button" class="term-btn delete-ds-btn" data-id="${ds.id}" data-type="${ds.type}" style="color: #f87171; border-color: rgba(248, 113, 113, 0.3);">
-              🗑️ 删除资产
-            </button>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      // Bind delete handlers
-      document.querySelectorAll('.delete-ds-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const dsId = btn.dataset.id;
-          const dsType = btn.dataset.type;
-          if (confirm(`确定要删除数据集 [${dsId}] 吗？此操作将清理本地对应数据文件。`)) {
-            try {
-              const dRes = await fetch(`${API_BASE}/api/datasets/delete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: dsId, type: dsType })
-              });
-              const dData = await dRes.json();
-              if (dData.success) {
-                await fetchDatasets();
-              } else {
-                alert('删除失败: ' + dData.error);
-              }
-            } catch (err) {
-              alert('删除请求失败: ' + err.message);
-            }
-          }
+          card.innerHTML = `
+            <div class="ds-card-header">
+              <span class="ds-name">${escapeHtml(ds.name)}</span>
+              <span class="ds-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="ds-meta-row">
+              <span>${detailText}</span>
+              <span>大小: ${ds.size_mb} MB</span>
+            </div>
+            <div style="font-size: 11px; color: #64748b; word-break: break-all;">
+              路径: <code>${escapeHtml(ds.id)}</code>
+            </div>
+            <div style="margin-top: auto; display: flex; justify-content: flex-end;">
+              <button type="button" class="term-btn delete-ds-btn" data-id="${ds.id}" data-type="${ds.type}" style="color: #f87171; border-color: rgba(248, 113, 113, 0.3);">
+                🗑️ 删除资产
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
         });
-      });
+
+        // Bind delete handlers
+        document.querySelectorAll('.delete-ds-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const dsId = btn.dataset.id;
+            const dsType = btn.dataset.type;
+            if (confirm(`确定要删除数据集 [${dsId}] 吗？此操作将清理本地对应数据文件。`)) {
+              try {
+                const dRes = await fetch(`${API_BASE}/api/datasets/delete`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ id: dsId, type: dsType })
+                });
+                const dData = await dRes.json();
+                if (dData.success) {
+                  await fetchDatasets();
+                } else {
+                  alert('删除失败: ' + dData.error);
+                }
+              } catch (err) {
+                alert('删除请求失败: ' + err.message);
+              }
+            }
+          });
+        });
+      }
 
       return items;
     } catch (e) {
@@ -1645,137 +1656,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const hint = isFileProto
         ? '您当前正在通过 <code>file://</code> 直接打开网页，被浏览器跨域安全策略拦截。请双击运行 <strong>start.bat</strong> 并访问 <code>http://127.0.0.1:8000</code>！'
         : '无法连接到本地后端服务。请检查是否已在项目根目录运行 <strong>start.bat</strong> 或 <code>python server.py</code>！';
-      container.innerHTML = `
-        <div style="color: #f87171; padding: 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; margin: 10px 0;">
-          <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">❌ 加载数据集列表失败 (${escapeHtml(e.message)})</div>
-          <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">${hint}</div>
-        </div>
-      `;
+      if (container) {
+        container.innerHTML = `
+          <div style="color: #f87171; padding: 20px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; margin: 10px 0;">
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">❌ 加载数据集列表失败 (${escapeHtml(e.message)})</div>
+            <div style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">${hint}</div>
+          </div>
+        `;
+      }
+      if (!cachedDatasetsList || cachedDatasetsList.length === 0) {
+        syncDatasetSelectors(DEFAULT_FALLBACK_DATASETS);
+      }
       return [];
     }
   }
 
-  // ==========================================
-  // Hardware Detection & GPU Acceleration Modal
-  // ==========================================
-  const devicePill = document.getElementById('device-pill');
-  const hwModal = document.getElementById('hardware-modal');
-  const closeHwModalBtn = document.getElementById('close-hw-modal-btn');
-  const hwModalBody = document.getElementById('hw-modal-body');
-  const deviceHintText = document.getElementById('device-hint-text');
-
-  async function updateHardwareBadge() {
-    try {
-      const res = await fetch(`${API_BASE}/api/hardware`);
-      if (!res.ok) return;
-      const hw = await res.json();
-      
-      if (devicePill) {
-        if (hw.cuda_available) {
-          devicePill.innerHTML = `<span>🚀 GPU 加速: ${escapeHtml(hw.device_name)} (${hw.vram_total_gb}GB)</span>`;
-          devicePill.style.borderColor = 'rgba(52, 211, 153, 0.4)';
-          devicePill.style.color = '#34d399';
-          devicePill.style.cursor = 'pointer';
-        } else if (hw.physical_gpu_detected) {
-          devicePill.innerHTML = `<span>⚡ 探测到物理显卡: ${escapeHtml(hw.physical_gpu_name)} (点击查看)</span>`;
-          devicePill.style.cursor = 'pointer';
-          devicePill.style.borderColor = 'rgba(251, 191, 36, 0.5)';
-          devicePill.style.color = '#fbbf24';
-        } else {
-          devicePill.innerHTML = `<span>💻 运算平台: ${escapeHtml(hw.device_name)}</span>`;
-          devicePill.style.cursor = 'pointer';
-        }
-      }
-
-      if (deviceHintText) {
-        if (hw.cuda_available) {
-          deviceHintText.textContent = `✅ 已启用 CUDA 硬件加速 (${hw.device_name})，训练效率极高。`;
-          deviceHintText.style.color = '#34d399';
-        } else if (hw.physical_gpu_detected) {
-          deviceHintText.textContent = `ℹ️ 已识别物理显卡 ${hw.physical_gpu_name} (4GB)。当前 Python 环境未启用 CUDA 库，点击上方状态栏可查看 GPU 加速开启步骤。`;
-          deviceHintText.style.color = '#fbbf24';
-        } else {
-          deviceHintText.textContent = `ℹ️ 当前使用 CPU 多线程高效运算。`;
-          deviceHintText.style.color = '#94a3b8';
-        }
-      }
-
-      if (hwModalBody) {
-        let statusHtml = '';
-        if (hw.cuda_available) {
-          statusHtml = `
-            <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-              <div style="font-weight: 600; color: #34d399; font-size: 14px;">✅ GPU / CUDA 加速已就绪！</div>
-              <div style="margin-top: 4px; color: #e2e8f0;">当前显卡：${escapeHtml(hw.device_name)} · 显存：${hw.vram_total_gb} GB</div>
-            </div>
-          `;
-        } else if (hw.physical_gpu_detected) {
-          statusHtml = `
-            <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-              <div style="font-weight: 600; color: #fbbf24; font-size: 14px;">⚡ 已成功探测到本地物理独立显卡：</div>
-              <div style="margin-top: 4px; color: #f8fafc; font-weight: 600;">${escapeHtml(hw.physical_gpu_name)} (${Math.round(hw.physical_gpu_vram_mb/1024)}GB 显存)</div>
-              <div style="margin-top: 6px; font-size: 12px; color: #cbd5e1; line-height: 1.5;">
-                由于当前 Python 环境中安装的 PyTorch 版本为 <code>${escapeHtml(hw.torch_version)}</code>（CPU 编译版本），尚未包含 NVIDIA CUDA 运行时驱动库，因此 PyTorch 会在 CPU 上以多线程模式平稳运行。
-              </div>
-            </div>
-
-            <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 14px; margin-bottom: 14px;">
-              <div style="font-weight: 600; color: #818cf8; margin-bottom: 6px;">💡 如何开启 GPU 显卡加速？</div>
-              <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
-                1. 确保系统已安装 NVIDIA 显卡官方驱动程序。<br>
-                2. 打开终端控制台，在对应 Python 环境中安装带 CUDA 支持的 PyTorch：<br>
-                <code style="display: block; background: #000; padding: 8px 10px; border-radius: 4px; margin: 8px 0; color: #38bdf8; font-family: monospace; font-size: 11px;">
-                  pip install torch --index-url https://download.pytorch.org/whl/cu121 --force-reinstall
-                </code>
-                3. 重启 <code>start.bat</code>，控制台将自动启用 GPU 显卡加速！
-              </div>
-            </div>
-          `;
-        } else {
-          statusHtml = `
-            <div style="background: rgba(148, 163, 184, 0.1); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 12px; margin-bottom: 14px;">
-              <div style="font-weight: 600; color: #94a3b8; font-size: 14px;">💻 当前运算平台：CPU 多线程模式</div>
-              <div style="margin-top: 4px; color: #e2e8f0;">CPU 逻辑核心数：${hw.cpu_count || '多核'} 线程优化</div>
-            </div>
-          `;
-        }
-
-        hwModalBody.innerHTML = `
-          ${statusHtml}
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
-            <div style="background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px;">
-              <span style="color: #64748b;">CPU 核心数:</span> <strong style="color: #f8fafc;">${hw.cpu_count || 12} 线程</strong>
-            </div>
-            <div style="background: rgba(255,255,255,0.03); padding: 8px 12px; border-radius: 6px;">
-              <span style="color: #64748b;">PyTorch 版本:</span> <strong style="color: #f8fafc;">${escapeHtml(hw.torch_version || '2.14.1')}</strong>
-            </div>
-          </div>
-        `;
-      }
-    } catch (e) {
-      console.warn('Failed to fetch hardware info:', e);
-    }
-  }
-
-  if (devicePill) {
-    devicePill.addEventListener('click', () => {
-      if (hwModal) hwModal.style.display = 'flex';
-    });
-  }
-  if (closeHwModalBtn && hwModal) {
-    closeHwModalBtn.addEventListener('click', () => {
-      hwModal.style.display = 'none';
-    });
-  }
-  if (hwModal) {
-    hwModal.addEventListener('click', (e) => {
-      if (e.target === hwModal) hwModal.style.display = 'none';
-    });
-  }
-
   // Initial load
+  syncDatasetSelectors(DEFAULT_FALLBACK_DATASETS);
   fetchDatasets();
   updateHardwareBadge();
 
 });
+
 
